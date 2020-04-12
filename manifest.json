@@ -1,0 +1,42 @@
+{
+  "name": "Bookmark Import/Export",
+  "version": "1.0",
+  "description": "Import/Export bookmarks!",
+  "permissions": [
+    "bookmarks",
+    "https://github.com/login/oauth/access_token",
+    "tabs",
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/robots.txt*"
+      ],
+      "js": [
+        "libs/chrome-ex-oauth2/injection.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    "libs/*"
+  ],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/get_started16.png",
+      "32": "images/get_started32.png",
+      "48": "images/get_started48.png",
+      "128": "images/get_started128.png"
+    }
+  },
+  "icons": {
+    "16": "images/get_started16.png",
+    "32": "images/get_started32.png",
+    "48": "images/get_started48.png",
+    "128": "images/get_started128.png"
+  },
+  "options_page": "options.html",
+  "manifest_version": 2
+}
