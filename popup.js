@@ -3,7 +3,7 @@ $('#github').on('click', function(){
 })
 
 $('#getToken').on('click', function () {
-  chrome.storage.local.get("token", function (result) {
+  chrome.storage.local.get('token', function (result) {
     alert(result.token)
   })
 })
@@ -22,41 +22,60 @@ function cleanBookmarks(obj, field) {
   }
 }
 
-$('#upload').on('click', function () {
-  let el = $('#upload');
-  el.html('Uploading...');
+async function prepareBookmarksForUpload(callback) {
+  let output = {
+    'description': 'Bookmarks',
+    'files': {
+      'bookmarks.json': {
+        content: null
+      },
+      'other.json': {
+        content: null
+      }
+    }
+  }
 
-  chrome.storage.local.get("token", function (result) {
-    let token = result.token;
+  chrome.bookmarks.getSubTree('1', function (bookmarks) {
+    cleanBookmarks(bookmarks, 'id')
+    cleanBookmarks(bookmarks, 'dateAdded')
+    cleanBookmarks(bookmarks, 'dateGroupModified')
+    cleanBookmarks(bookmarks, 'parentId')
 
-    chrome.bookmarks.getSubTree('1', function (bookmarks) { 
+    // console.log(JSON.stringify(bookmarks, null, 2))
+    output['files']['bookmarks.json']['content'] = JSON.stringify(bookmarks, null, 2)
+
+    chrome.bookmarks.getSubTree('2', function (bookmarks) {
       cleanBookmarks(bookmarks, 'id')
       cleanBookmarks(bookmarks, 'dateAdded')
       cleanBookmarks(bookmarks, 'dateGroupModified')
       cleanBookmarks(bookmarks, 'parentId')
 
       // console.log(JSON.stringify(bookmarks, null, 2))
+      output['files']['other.json']['content'] = JSON.stringify(bookmarks, null, 2)
 
-      let data = {
-        "description": "Bookmarks",
-        "files": {
-          "bookmarks.json": {
-            content: JSON.stringify(bookmarks, null, 2)
-          }
-        }
-      }
+      callback(output)
+    })
+  })
+}
 
+$('#upload').on('click', function () {
+  let el = $('#upload');
+  el.html('Uploading...');
+
+  chrome.storage.local.get('token', function (result) {
+    let token = result.token;
+    prepareBookmarksForUpload((res)=>{
       $.ajax('https://api.github.com/gists/aaedf77f8433bee8f9792935d3f29f13', {
-        "headers": {
-          "Authorization": "token " + token,
-          "Accept": "application/vnd.github.v3+json"
+        'headers': {
+          'Authorization': 'token ' + token,
+          'Accept': 'application/vnd.github.v3+json'
         },
-        "contentType":"application/json",
-        "dataType":"json",
-        "type": "PATCH",
-        "data": JSON.stringify(data),
-        "success": function (data) {
-          el.html("Updated!")
+        'contentType': 'application/json',
+        'dataType': 'json',
+        'type': 'PATCH',
+        'data': JSON.stringify(res),
+        'success': function (res) {
+          el.html('Updated!')
         }
       });
     })
@@ -64,7 +83,7 @@ $('#upload').on('click', function () {
 })
 
 
-function createBookmarks(bookmark, parentId){
+function createBookmarks(bookmark, parentId) {
   if ('children' in bookmark) {
     chrome.bookmarks.create({
       title: bookmark.title,
@@ -89,31 +108,42 @@ $('#download').on('click', function () {
   let el = $('#download');
   el.html('Downloading...');
 
-  chrome.storage.local.get("token", function (result) {
+  chrome.storage.local.get('token', function (result) {
     let token = result.token;
 
     // download bookmarks from gist
     $.ajax('https://api.github.com/gists/aaedf77f8433bee8f9792935d3f29f13', {
-      "headers": {
-        "Authorization": "token " + token,
-        "Accept": "application/vnd.github.v3+json"
+      'headers': {
+        'Authorization': 'token ' + token,
+        'Accept': 'application/vnd.github.v3+json'
       },
-      "dataType": "json",
-      "type": "GET",
-      "success": function (data) {
+      'dataType': 'json',
+      'type': 'GET',
+      'success': function (data) {
         let bookmarks = JSON.parse(data.files['bookmarks.json'].content)[0];
-        // console.log(bookmarks)
-        
-        // find and delete all bookmarks
-        chrome.bookmarks.getChildren('1', function (results) {
-          results.forEach(element => {
-            chrome.bookmarks.removeTree(element.id)
-          });
+        let otherBookmarks = JSON.parse(data.files['other.json'].content)[0];
+        console.log(bookmarks);
+        console.log(otherBookmarks);
+
+        // remove main bookmarks
+        chrome.bookmarks.getChildren('1', (bookmarks) => {
+          bookmarks.forEach(bookmark => {
+            if (bookmark.id != '2') chrome.bookmarks.removeTree(bookmark.id)
+          })
+        });
+
+        // remove other bookmarks
+        chrome.bookmarks.getChildren('2', (bookmarks) => {
+          bookmarks.forEach(bookmark => {
+            chrome.bookmarks.removeTree(bookmark.id)
+          })
         });
         
-        bookmarks.children.forEach(element => createBookmarks(element));
+        // add downloaded bookmarks
+        bookmarks.children.forEach(element => createBookmarks(element, '1'));
+        otherBookmarks.children.forEach(element => createBookmarks(element, '2'));
 
-        el.html("Done!")
+        el.html('Done!')
       }
     });
   });
