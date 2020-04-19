@@ -2,7 +2,7 @@ $('#github').on('click', function(){
   window.oauth2.start();
 })
 
-$('#getToken').on('click', function () {
+$('#showToken').on('click', function () {
   chrome.storage.local.get('token', function (result) {
     alert(result.token)
   })
@@ -22,7 +22,7 @@ function cleanBookmarks(obj, field) {
   }
 }
 
-async function prepareBookmarksForUpload(callback) {
+function prepareBookmarksForUpload(callback) {
   let output = {
     'description': 'Bookmarks',
     'files': {
@@ -73,11 +73,19 @@ $('#upload').on('click', function () {
         'contentType': 'application/json',
         'dataType': 'json',
         'type': 'PATCH',
-        'data': JSON.stringify(res),
-        'success': function (res) {
-          el.html('Updated!')
+        'data': JSON.stringify(res)
+      })
+      .done((res) => {
+        el.html('Updated!')
+      })
+      .fail((err)=>{
+        // console.log('err', err)
+        let message = '';
+        if (err.status == 401) {
+          message = 'Permission Denied. Please update your GitHub token by clicking the GitHub button.';
         }
-      });
+        alert(`Sorry there was a problem:\n${message}`)
+      })
     })
   });
 })
@@ -104,6 +112,27 @@ function createBookmarks(bookmark, parentId) {
   }
 }
 
+function removeBookmarks() {
+  return new Promise((resolve, reject)=>{
+    // remove main bookmarks
+    chrome.bookmarks.getChildren('1', (bookmarks) => {
+      bookmarks.forEach(bookmark => {
+        // unable to delete the special "other bookmarks" with ID == '2
+        if (bookmark.id != '2') chrome.bookmarks.removeTree(bookmark.id)
+      })
+
+      // remove other bookmarks
+      chrome.bookmarks.getChildren('2', (bookmarks) => {
+        bookmarks.forEach(bookmark => {
+          chrome.bookmarks.removeTree(bookmark.id)
+        })
+
+        resolve()
+      });
+    });
+  })
+}
+
 $('#download').on('click', function () {
   let el = $('#download');
   el.html('Downloading...');
@@ -114,37 +143,33 @@ $('#download').on('click', function () {
     // download bookmarks from gist
     $.ajax('https://api.github.com/gists/aaedf77f8433bee8f9792935d3f29f13', {
       'headers': {
-        'Authorization': 'token ' + token,
         'Accept': 'application/vnd.github.v3+json'
       },
       'dataType': 'json',
-      'type': 'GET',
-      'success': function (data) {
-        let bookmarks = JSON.parse(data.files['bookmarks.json'].content)[0];
-        let otherBookmarks = JSON.parse(data.files['other.json'].content)[0];
-        console.log(bookmarks);
-        console.log(otherBookmarks);
+      'type': 'GET'
+    })
+    .then((data) => {
+      let bookmarks = JSON.parse(data.files['bookmarks.json'].content)[0];
+      let otherBookmarks = JSON.parse(data.files['other.json'].content)[0];
+      // console.log(bookmarks);
+      // console.log(otherBookmarks);
 
-        // remove main bookmarks
-        chrome.bookmarks.getChildren('1', (bookmarks) => {
-          bookmarks.forEach(bookmark => {
-            if (bookmark.id != '2') chrome.bookmarks.removeTree(bookmark.id)
-          })
-        });
+      removeBookmarks()
+        .then(() => {
+          // add downloaded bookmarks
+          bookmarks.children.forEach(element => createBookmarks(element, '1'));
+          otherBookmarks.children.forEach(element => createBookmarks(element, '2'));
+        })
 
-        // remove other bookmarks
-        chrome.bookmarks.getChildren('2', (bookmarks) => {
-          bookmarks.forEach(bookmark => {
-            chrome.bookmarks.removeTree(bookmark.id)
-          })
-        });
-        
-        // add downloaded bookmarks
-        bookmarks.children.forEach(element => createBookmarks(element, '1'));
-        otherBookmarks.children.forEach(element => createBookmarks(element, '2'));
-
-        el.html('Done!')
+      el.html('Done!')
+    })
+    .fail((err)=>{
+      console.log('err', err)
+      let message = ''
+      if (err.status == 404) {
+        message = 'Unable to find the bookmark. Please check your Gist id.'
       }
-    });
+      alert(`Unable to download bookmarks:\n${message}`)
+    })
   });
 })
