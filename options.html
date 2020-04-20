@@ -13,12 +13,20 @@
 </head>
 
 <body>
-  <div id="buttonDiv">
-  </div>
+  <h1>Bookmark Import/Export</h1>
   <div>
-    <p>Choose a different background color!</p>
+    <form id="options">
+      <p>
+        Gist ID to use for bookmarks:
+        <br>
+        <span id="currentId"></span>
+      </p>
+      <input name="gistId" />
+      <input type="submit" value="Save" />
+    </form>
   </div>
 </body>
+<script src="libs/jquery.js"></script>
 <script src="options.js"></script>
 
 </html>

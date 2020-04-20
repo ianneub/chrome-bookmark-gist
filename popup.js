@@ -65,26 +65,29 @@ $('#upload').on('click', function () {
   chrome.storage.local.get('token', function (result) {
     let token = result.token;
     prepareBookmarksForUpload((res)=>{
-      $.ajax('https://api.github.com/gists/aaedf77f8433bee8f9792935d3f29f13', {
-        'headers': {
-          'Authorization': 'token ' + token,
-          'Accept': 'application/vnd.github.v3+json'
-        },
-        'contentType': 'application/json',
-        'dataType': 'json',
-        'type': 'PATCH',
-        'data': JSON.stringify(res)
-      })
-      .done((res) => {
-        el.html('Updated!')
-      })
-      .fail((err)=>{
-        // console.log('err', err)
-        let message = '';
-        if (err.status == 401) {
-          message = 'Permission Denied. Please update your GitHub token by clicking the GitHub button.';
-        }
-        alert(`Sorry there was a problem:\n${message}`)
+      chrome.storage.sync.get('id', (storage)=>{
+        if (storage.id == undefined) alert('You must set a Gist ID to use in options.')
+        $.ajax('https://api.github.com/gists/' + storage.id, {
+          'headers': {
+            'Authorization': 'token ' + token,
+            'Accept': 'application/vnd.github.v3+json'
+          },
+          'contentType': 'application/json',
+          'dataType': 'json',
+          'type': 'PATCH',
+          'data': JSON.stringify(res)
+        })
+          .done((res) => {
+            el.html('Updated!')
+          })
+          .fail((err) => {
+            // console.log('err', err)
+            let message = '';
+            if (err.status == 401) {
+              message = 'Permission Denied. Please update your GitHub token by clicking the GitHub button.';
+            }
+            alert(`Sorry there was a problem:\n${message}`)
+          })
       })
     })
   });
@@ -140,36 +143,39 @@ $('#download').on('click', function () {
   chrome.storage.local.get('token', function (result) {
     let token = result.token;
 
-    // download bookmarks from gist
-    $.ajax('https://api.github.com/gists/aaedf77f8433bee8f9792935d3f29f13', {
-      'headers': {
-        'Accept': 'application/vnd.github.v3+json'
-      },
-      'dataType': 'json',
-      'type': 'GET'
-    })
-    .then((data) => {
-      let bookmarks = JSON.parse(data.files['bookmarks.json'].content)[0];
-      let otherBookmarks = JSON.parse(data.files['other.json'].content)[0];
-      // console.log(bookmarks);
-      // console.log(otherBookmarks);
+    chrome.storage.sync.get('id', (storage) => {
+      if (storage.id == undefined) alert('You must set a Gist ID to use in options.')
+      // download bookmarks from gist
+      $.ajax('https://api.github.com/gists/' + storage.id, {
+        'headers': {
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        'dataType': 'json',
+        'type': 'GET'
+      })
+      .then((data) => {
+        let bookmarks = JSON.parse(data.files['bookmarks.json'].content)[0];
+        let otherBookmarks = JSON.parse(data.files['other.json'].content)[0];
+        // console.log(bookmarks);
+        // console.log(otherBookmarks);
 
-      removeBookmarks()
-        .then(() => {
-          // add downloaded bookmarks
-          bookmarks.children.forEach(element => createBookmarks(element, '1'));
-          otherBookmarks.children.forEach(element => createBookmarks(element, '2'));
-        })
+        removeBookmarks()
+          .then(() => {
+            // add downloaded bookmarks
+            bookmarks.children.forEach(element => createBookmarks(element, '1'));
+            otherBookmarks.children.forEach(element => createBookmarks(element, '2'));
+          })
 
-      el.html('Done!')
-    })
-    .fail((err)=>{
-      console.log('err', err)
-      let message = ''
-      if (err.status == 404) {
-        message = 'Unable to find the bookmark. Please check your Gist id.'
-      }
-      alert(`Unable to download bookmarks:\n${message}`)
+        el.html('Done!')
+      })
+      .fail((err)=>{
+        console.log('err', err)
+        let message = ''
+        if (err.status == 404) {
+          message = 'Unable to find the bookmark. Please check your Gist id.'
+        }
+        alert(`Unable to download bookmarks:\n${message}`)
+      })
     })
   });
 })
