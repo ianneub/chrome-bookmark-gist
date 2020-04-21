@@ -16,14 +16,20 @@
   <h1>Bookmark Import/Export</h1>
   <div>
     <form id="options">
+      <h2>Gist ID</h2>
       <p>
-        Gist ID to use for bookmarks:
+        Use this Gist ID to upload/download bookmarks:
         <br>
         <span id="currentId"></span>
       </p>
       <input name="gistId" />
-      <input type="submit" value="Save" />
+      <input type="submit" value="Save New ID" />
     </form>
+
+    <p>
+      <h2>Current GitHub API Token</h2>
+      <span id="showToken"></span>
+    </p>
   </div>
 </body>
 <script src="libs/jquery.js"></script>

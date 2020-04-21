@@ -11,8 +11,15 @@ function getCurrentId() {
   })
 }
 
+function showToken() {
+  chrome.storage.local.get('token', (storage) => {
+    $('#showToken').html(storage.token)
+  })
+}
+
 $(window).on('load', (e)=>{
   getCurrentId()
+  showToken()
 })
 
 $('#options').on('submit', (e)=>{

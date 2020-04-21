@@ -2,12 +2,6 @@ $('#github').on('click', function(){
   window.oauth2.start();
 })
 
-$('#showToken').on('click', function () {
-  chrome.storage.local.get('token', function (result) {
-    alert(result.token)
-  })
-})
-
 function cleanBookmarks(obj, field) {
   for (prop in obj) {
     if (prop === field)
