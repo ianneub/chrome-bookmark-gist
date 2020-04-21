@@ -4,7 +4,7 @@
         access_token_url: "https://github.com/login/oauth/access_token",
         authorization_url: "https://github.com/login/oauth/authorize",
         client_id: "5abbd5f32c07fcd76de8",
-        client_secret: "a30d13a9b682b25bef2e54a3231e8f9814db4a06",
+        client_secret: "9dd51d4b7a85a46b443a3de848f0018a087f7c86",
         redirect_url: "https://github.com/robots.txt",
         scopes: ['gist'],
 
